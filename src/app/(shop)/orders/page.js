@@ -29,31 +29,35 @@ export default function OrdersPage() {
 
   const statusColor = (status) => {
     const colors = {
-      pending: 'bg-yellow-100 text-yellow-700',
-      processing: 'bg-blue-100 text-blue-700',
-      shipped: 'bg-purple-100 text-purple-700',
-      delivered: 'bg-green-100 text-green-700',
-      cancelled: 'bg-red-100 text-red-700',
+      pending: 'bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border-amber-200/50 dark:border-amber-900/30',
+      processing: 'bg-sky-100 text-sky-700 dark:bg-sky-950/30 dark:text-sky-400 border-sky-200/50 dark:border-sky-900/30',
+      shipped: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-900/30',
+      delivered: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border-emerald-200/50 dark:border-emerald-900/30',
+      cancelled: 'bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400 border-rose-200/50 dark:border-rose-900/30',
     };
-    return colors[status] || 'bg-gray-100 text-gray-700';
+    return colors[status] || 'bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-450';
   };
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center dark:bg-gray-950">
-      <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"/>
+    <div className="min-h-screen flex items-center justify-center bg-bg-primary">
+      <div className="w-8 h-8 border-4 border-brand-primary dark:border-violet-500 border-t-transparent rounded-full animate-spin"/>
     </div>
   );
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <main className="min-h-screen bg-bg-primary pb-20">
       <div className="max-w-4xl mx-auto px-6 py-10">
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-8">My Orders</h1>
+        <div className="mb-8">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight">My Orders</h1>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">ඔබ ලබාදුන් ඇණවුම් වල තොරතුරු සහ වත්මන් තත්ත්වය</p>
+        </div>
 
         {orders.length === 0 ? (
-          <div className="text-center py-20">
+          <div className="text-center py-20 glass-panel rounded-3xl p-8 bg-white/40 dark:bg-slate-900/30">
             <p className="text-5xl mb-4">📦</p>
-            <p className="text-lg text-gray-500 dark:text-gray-400 mb-6">Orders නෑ</p>
-            <Link href="/products" className="bg-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-700 transition">
+            <h3 className="text-base font-bold text-slate-700 dark:text-slate-200">No Orders Found</h3>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 mb-6">ඔබ මෙතෙක් කිසිදු ඇණවුමක් සිදු කර නොමැත.</p>
+            <Link href="/products" className="bg-brand-primary dark:bg-violet-600 hover:bg-indigo-700 text-white px-6 py-3.5 rounded-xl font-bold transition hover:shadow-md active:scale-95 text-xs uppercase tracking-wider">
               Shop Now
             </Link>
           </div>
@@ -63,18 +67,18 @@ export default function OrdersPage() {
               <Link
                 key={order.order_id}
                 href={`/orders/${order.order_id}`}
-                className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 flex items-center justify-between hover:shadow-md transition block"
+                className="glass-panel glow-card rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-sm p-6 flex items-center justify-between hover:shadow-md transition duration-300 block"
               >
                 <div>
-                  <p className="font-bold text-gray-800 dark:text-gray-100 mb-1">Order #{order.order_id}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                  <p className="font-bold text-slate-800 dark:text-slate-100 mb-1 text-sm">Order #{order.order_id}</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mb-2 font-medium">
                     {new Date(order.order_date).toLocaleDateString('si-LK')}
                   </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{order.payment_method}</p>
+                  <p className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 dark:text-slate-500">{order.payment_method} Payment</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-blue-600 mb-2">Rs. {order.total_amount?.toLocaleString()}</p>
-                  <span className={`text-xs px-3 py-1 rounded-full font-medium ${statusColor(order.status)}`}>
+                  <p className="font-black text-brand-primary dark:text-violet-400 mb-2 text-sm">Rs. {order.total_amount?.toLocaleString()}</p>
+                  <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold border ${statusColor(order.status)}`}>
                     {order.status}
                   </span>
                 </div>

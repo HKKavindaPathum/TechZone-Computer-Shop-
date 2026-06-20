@@ -36,42 +36,51 @@ export default function LoginPage() {
     }
   };
 
+  const inputClass = "w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 dark:focus:ring-violet-500/50 transition-all font-medium";
+  const labelClass = "block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5";
+
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center px-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 w-full max-w-md p-8">
+    <main className="min-h-screen bg-bg-primary flex items-center justify-center px-4 relative overflow-hidden">
+      {/* Glow Effects */}
+      <div className="absolute top-0 left-1/4 w-72 h-72 bg-brand-primary/5 rounded-full blur-[100px] pointer-events-none"/>
+      <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none"/>
+
+      <div className="glass-panel shadow-sm bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 w-full max-w-md p-8 sm:p-10 rounded-3xl relative z-10">
 
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">TechZone</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">ඔබගේ account එකට login වන්න</p>
+          <Link href="/" className="inline-block text-2xl font-black bg-gradient-to-r from-brand-primary to-brand-accent dark:from-violet-400 dark:to-cyan-400 bg-clip-text text-transparent tracking-tight">
+            TechZone
+          </Link>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 font-medium">ඔබගේ account එකට login වන්න</p>
         </div>
 
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg mb-6 text-sm">
+          <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/50 text-rose-600 dark:text-rose-400 px-4 py-3 rounded-xl mb-6 text-xs font-semibold">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+            <label className={labelClass}>Email</label>
             <input
               type="email"
               required
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={inputClass}
               placeholder="you@example.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+            <label className={labelClass}>Password</label>
             <input
               type="password"
               required
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={inputClass}
               placeholder="••••••••"
             />
           </div>
@@ -79,15 +88,20 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-brand-primary hover:bg-indigo-700 dark:bg-violet-600 dark:hover:bg-violet-500 text-white py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 transform active:scale-98 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                Logging in...
+              </span>
+            ) : 'Login'}
           </button>
         </form>
 
-        <p className="text-center text-gray-500 dark:text-gray-400 text-sm mt-6">
-          Account එකක් නෑද?{' '}
-          <Link href="/register" className="text-blue-600 hover:underline font-medium">
+        <p className="text-center text-slate-400 dark:text-slate-500 text-xs mt-6 font-semibold">
+          Account එකක් නැද්ද?{' '}
+          <Link href="/register" className="text-brand-primary dark:text-violet-400 hover:underline font-bold">
             Register කරන්න
           </Link>
         </p>
