@@ -219,61 +219,109 @@ export default function AdminDashboard() {
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">භාණ්ඩ, ඇණවුම් සහ සංඛ්‍යාලේඛන කළමනාකරණය</p>
         </div>
 
-        {/* Tab Buttons bar */}
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none mb-8 border-b border-slate-200/50 dark:border-slate-800/50">
+        {/* Tab Buttons bar (Modern sliding capsule design) */}
+        <div className="flex gap-1.5 overflow-x-auto p-1.5 scrollbar-none mb-8 bg-slate-100/80 dark:bg-slate-950/60 border border-slate-200/65 dark:border-slate-800/80 rounded-2xl w-fit max-w-full">
           {[
             { id: 'overview', label: '📊 Overview' },
             { id: 'orders', label: '📦 Orders' },
             { id: 'products', label: '🖥️ Products' },
             { id: 'add-product', label: editingProduct ? '✏️ Edit Product' : '➕ Add Product' },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => { setActiveTab(tab.id); if (tab.id !== 'add-product') resetForm(); }}
-              className={`px-5 py-3 text-xs font-bold border-b-2 transition-all duration-200 flex-shrink-0 ${
-                activeTab === tab.id 
-                  ? 'border-brand-primary text-brand-primary dark:border-violet-500 dark:text-violet-400' 
-                  : 'border-transparent text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+          ].map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => { setActiveTab(tab.id); if (tab.id !== 'add-product') resetForm(); }}
+                className={`px-5 py-2.5 text-xs font-bold rounded-xl transition-all duration-300 flex-shrink-0 active:scale-95 ${
+                  isActive 
+                    ? 'bg-white dark:bg-slate-900 text-brand-primary dark:text-violet-400 shadow-sm border border-slate-200/30 dark:border-slate-800/30' 
+                    : 'text-slate-500 dark:text-slate-450 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* TAB 1: OVERVIEW */}
         {activeTab === 'overview' && (
-          <div className="space-y-8 animate-in fade-in duration-200">
+          <div className="space-y-8 animate-in fade-in duration-300">
             {/* Stats list */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
               {[
-                { label: 'Total Orders', value: orders.length, color: 'text-brand-primary dark:text-indigo-400' },
-                { label: 'Pending Orders', value: pendingOrders, color: 'text-amber-500 dark:text-amber-400' },
-                { label: 'Total Products', value: products.length, color: 'text-violet-500 dark:text-violet-400' },
-                { label: 'Total Revenue', value: `Rs. ${totalRevenue.toLocaleString()}`, color: 'text-emerald-500 dark:text-emerald-400' },
+                { 
+                  label: 'Total Orders', 
+                  value: orders.length, 
+                  color: 'text-brand-primary dark:text-indigo-400',
+                  icon: (
+                    <svg className="w-4 h-4 text-brand-primary dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
+                  ),
+                  bg: 'bg-brand-primary/10'
+                },
+                { 
+                  label: 'Pending Orders', 
+                  value: pendingOrders, 
+                  color: 'text-amber-500 dark:text-amber-450',
+                  icon: (
+                    <svg className="w-4 h-4 text-amber-500 dark:text-amber-450" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  ),
+                  bg: 'bg-amber-500/10'
+                },
+                { 
+                  label: 'Total Products', 
+                  value: products.length, 
+                  color: 'text-violet-500 dark:text-violet-400',
+                  icon: (
+                    <svg className="w-4 h-4 text-violet-500 dark:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  ),
+                  bg: 'bg-violet-500/10'
+                },
+                { 
+                  label: 'Total Revenue', 
+                  value: `Rs. ${totalRevenue.toLocaleString()}`, 
+                  color: 'text-emerald-500 dark:text-emerald-400',
+                  icon: (
+                    <svg className="w-4 h-4 text-emerald-500 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  ),
+                  bg: 'bg-emerald-500/10'
+                },
               ].map((stat, i) => (
-                <div key={i} className="glass-panel rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/60 shadow-sm p-5 hover:shadow-md transition-shadow">
-                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">{stat.label}</p>
-                  <p className={`text-xl sm:text-2xl font-black ${stat.color}`}>{stat.value}</p>
+                <div key={i} className="glass-panel rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-sm p-5 hover:shadow-md transition-all duration-300 group relative overflow-hidden text-left">
+                  <div className="flex justify-between items-start mb-4">
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{stat.label}</span>
+                    <div className={`p-2 rounded-xl ${stat.bg} group-hover:scale-110 transition-transform duration-300`}>
+                      {stat.icon}
+                    </div>
+                  </div>
+                  <p className={`text-xl sm:text-2xl font-black ${stat.color} tracking-tight`}>{stat.value}</p>
                 </div>
               ))}
             </div>
 
             {/* Recent Orders table */}
-            <div className="glass-panel rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/60 shadow-sm p-6">
-              <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-4 uppercase tracking-wider flex items-center gap-1">
+            <div className="glass-panel rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-sm p-6 text-left">
+              <h2 className="text-xs font-bold text-slate-800 dark:text-slate-100 mb-6 uppercase tracking-wider flex items-center gap-1.5 pb-2 border-b border-slate-200/40 dark:border-slate-800/40">
                 <span>📋</span> Recent Orders
               </h2>
               <div className="space-y-4">
                 {orders.slice(0, 5).map(order => (
-                  <div key={order.order_id} className="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b border-slate-200/40 dark:border-slate-800/40 gap-2">
+                  <div key={order.order_id} className="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b border-slate-150/40 dark:border-slate-800/30 last:border-0 last:pb-0 gap-2">
                     <div>
                       <p className="text-xs font-bold text-slate-800 dark:text-slate-100">Order #{order.order_id}</p>
-                      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">{order.name} • {order.email}</p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-550 font-medium mt-0.5">{order.name} • {order.email}</p>
                     </div>
                     <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2">
                       <p className="text-xs font-black text-brand-primary dark:text-violet-400">Rs. {parseFloat(order.total_amount).toLocaleString()}</p>
-                      <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold border ${statusColor(order.status)}`}>{order.status}</span>
+                      <span className={`text-[9px] px-2.5 py-0.5 rounded-full font-bold border ${statusColor(order.status)}`}>{order.status}</span>
                     </div>
                   </div>
                 ))}
@@ -287,37 +335,37 @@ export default function AdminDashboard() {
 
         {/* TAB 2: ORDERS LIST */}
         {activeTab === 'orders' && (
-          <div className="glass-panel rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/60 shadow-sm overflow-hidden animate-in fade-in duration-200">
+          <div className="glass-panel rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-sm overflow-hidden animate-in fade-in duration-300">
             {/* Scrollable table container */}
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[700px]">
-                <thead className="bg-slate-100/50 dark:bg-slate-850/50 border-b border-slate-200 dark:border-slate-800">
+                <thead className="bg-slate-100/50 dark:bg-slate-950/40 border-b border-slate-200/60 dark:border-slate-800/50">
                   <tr>
                     {['Order', 'Customer', 'Amount', 'Status', 'Update Status'].map(h => (
-                      <th key={h} className="px-6 py-4 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">{h}</th>
+                      <th key={h} className="px-6 py-4.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200/50 dark:divide-slate-800/50 text-xs">
+                <tbody className="divide-y divide-slate-150/40 dark:divide-slate-850/30 text-xs">
                   {orders.map(order => (
-                    <tr key={order.order_id} className="hover:bg-slate-100/20 dark:hover:bg-slate-800/10 font-medium">
-                      <td className="px-6 py-4">
-                        <p className="font-bold text-slate-850 dark:text-slate-100">#{order.order_id}</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">{new Date(order.order_date).toLocaleDateString()}</p>
+                    <tr key={order.order_id} className="hover:bg-slate-100/30 dark:hover:bg-slate-850/15 font-medium transition-colors">
+                      <td className="px-6 py-4.5">
+                        <p className="font-bold text-slate-800 dark:text-slate-100">#{order.order_id}</p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 font-semibold">{new Date(order.order_date).toLocaleDateString()}</p>
                       </td>
-                      <td className="px-6 py-4">
-                        <p className="text-slate-850 dark:text-slate-100 font-bold">{order.name}</p>
-                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">{order.email}</p>
+                      <td className="px-6 py-4.5">
+                        <p className="text-slate-800 dark:text-slate-100 font-bold">{order.name}</p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-1">{order.email}</p>
                       </td>
-                      <td className="px-6 py-4 font-black text-brand-primary dark:text-violet-400">Rs. {parseFloat(order.total_amount).toLocaleString()}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4.5 font-black text-brand-primary dark:text-violet-400">Rs. {parseFloat(order.total_amount).toLocaleString()}</td>
+                      <td className="px-6 py-4.5">
                         <span className={`text-[9px] px-2.5 py-0.5 rounded-full font-bold border ${statusColor(order.status)}`}>{order.status}</span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4.5">
                         <select
                           value={order.status}
                           onChange={(e) => updateOrderStatus(order.order_id, e.target.value)}
-                          className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 text-[11px] text-slate-700 dark:text-slate-300 font-bold focus:outline-none focus:ring-2 focus:ring-brand-primary/50 dark:focus:ring-violet-500/50"
+                          className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-[11px] text-slate-700 dark:text-slate-300 font-bold focus:outline-none focus:ring-2 focus:ring-brand-primary/50 dark:focus:ring-violet-500/50 cursor-pointer transition-all"
                         >
                           {['pending', 'processing', 'shipped', 'delivered', 'cancelled'].map(s => (
                             <option key={s} value={s}>{s}</option>
@@ -328,7 +376,7 @@ export default function AdminDashboard() {
                   ))}
                   {orders.length === 0 && (
                     <tr>
-                      <td colSpan="5" className="text-center py-10 text-slate-400">No orders found.</td>
+                      <td colSpan="5" className="text-center py-12 text-slate-400 font-medium">No orders found.</td>
                     </tr>
                   )}
                 </tbody>
@@ -339,46 +387,50 @@ export default function AdminDashboard() {
 
         {/* TAB 3: PRODUCTS LIST */}
         {activeTab === 'products' && (
-          <div className="glass-panel rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/60 shadow-sm overflow-hidden animate-in fade-in duration-200">
+          <div className="glass-panel rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-sm overflow-hidden animate-in fade-in duration-300">
             {/* Scrollable table container */}
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[700px]">
-                <thead className="bg-slate-100/50 dark:bg-slate-850/50 border-b border-slate-200 dark:border-slate-800">
+                <thead className="bg-slate-100/50 dark:bg-slate-950/40 border-b border-slate-200/60 dark:border-slate-800/50">
                   <tr>
                     {['Product', 'Category', 'Price', 'Stock', 'Actions'].map(h => (
-                      <th key={h} className="px-6 py-4 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">{h}</th>
+                      <th key={h} className="px-6 py-4.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200/50 dark:divide-slate-800/50 text-xs">
+                <tbody className="divide-y divide-slate-150/40 dark:divide-slate-850/30 text-xs">
                   {products.map(product => (
-                    <tr key={product.product_id} className="hover:bg-slate-100/20 dark:hover:bg-slate-800/10 font-medium">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-slate-100 dark:bg-slate-950 border border-slate-200/40 dark:border-slate-800/40 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
+                    <tr key={product.product_id} className="hover:bg-slate-100/30 dark:hover:bg-slate-850/15 font-medium transition-colors">
+                      <td className="px-6 py-4.5">
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-10 h-10 bg-slate-100 dark:bg-slate-950 border border-slate-200/40 dark:border-slate-800/40 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
                             {product.image_url ? (
                               <img src={product.image_url} alt={product.product_name} className="w-full h-full object-cover"/>
                             ) : <span className="text-base">🖥️</span>}
                           </div>
                           <div>
-                            <p className="font-bold text-slate-800 dark:text-slate-100 line-clamp-1">{product.product_name}</p>
-                            <p className="text-[10px] text-slate-400 mt-0.5 font-bold uppercase">{product.brand}</p>
+                            <p className="font-bold text-slate-850 dark:text-slate-100 line-clamp-1">{product.product_name}</p>
+                            <p className="text-[10px] text-slate-450 mt-1 font-extrabold uppercase tracking-wide">{product.brand}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-slate-500 dark:text-slate-400 font-semibold">{product.category_name}</td>
-                      <td className="px-6 py-4 font-black text-brand-primary dark:text-violet-400">Rs. {parseFloat(product.price).toLocaleString()}</td>
-                      <td className="px-6 py-4">
-                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${product.stock_quantity > 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                      <td className="px-6 py-4.5 text-slate-500 dark:text-slate-400 font-semibold">{product.category_name}</td>
+                      <td className="px-6 py-4.5 font-black text-brand-primary dark:text-violet-400">Rs. {parseFloat(product.price).toLocaleString()}</td>
+                      <td className="px-6 py-4.5">
+                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-lg border ${
+                          product.stock_quantity > 0 
+                            ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
+                            : 'bg-rose-500/10 text-rose-500 border-rose-500/20'
+                        }`}>
                           {product.stock_quantity} available
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4.5">
                         <div className="flex gap-2">
-                          <button onClick={() => handleEditProduct(product)} className="bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary dark:text-indigo-400 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 px-3 py-1.5 rounded-lg text-[10px] font-bold transition">
+                          <button onClick={() => handleEditProduct(product)} className="bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary dark:text-indigo-400 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 px-3 py-1.5 rounded-xl text-[10px] font-bold transition duration-200 active:scale-95 transform">
                             ✏️ Edit
                           </button>
-                          <button onClick={() => handleDeleteProduct(product.product_id)} className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 px-3 py-1.5 rounded-lg text-[10px] font-bold transition">
+                          <button onClick={() => handleDeleteProduct(product.product_id)} className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 px-3 py-1.5 rounded-xl text-[10px] font-bold transition duration-200 active:scale-95 transform">
                             🗑️ Delete
                           </button>
                         </div>
@@ -387,7 +439,7 @@ export default function AdminDashboard() {
                   ))}
                   {products.length === 0 && (
                     <tr>
-                      <td colSpan="5" className="text-center py-10 text-slate-400">No products found.</td>
+                      <td colSpan="5" className="text-center py-12 text-slate-400 font-medium">No products found.</td>
                     </tr>
                   )}
                 </tbody>
