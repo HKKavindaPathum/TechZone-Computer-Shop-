@@ -52,7 +52,7 @@ export default function RegisterPage() {
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 w-full max-w-md p-8">
 
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Computer Shop</h1>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">TechZone</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">නව account එකක් හදාගන්න</p>
         </div>
 

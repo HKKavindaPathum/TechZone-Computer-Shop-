@@ -5,7 +5,7 @@ import Navbar from '@/components/Navbar';
 const geist = Geist({ subsets: ['latin'] });
 
 export const metadata = {
-  title: 'Computer Shop',
+  title: 'TechZone',
   description: 'Best computers and accessories',
 };
 
