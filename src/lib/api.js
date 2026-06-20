@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:5000/api';
+const API_URL = '/api';
 
 export const api = {
   get: async (endpoint, token = null) => {
@@ -40,6 +40,17 @@ export const api = {
       headers: {
         ...(token && { Authorization: `Bearer ${token}` })
       }
+    });
+    return res.json();
+  },
+
+  upload: async (endpoint, formData, token = null) => {
+    const res = await fetch(`${API_URL}${endpoint}`, {
+      method: 'POST',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` })
+      },
+      body: formData
     });
     return res.json();
   }

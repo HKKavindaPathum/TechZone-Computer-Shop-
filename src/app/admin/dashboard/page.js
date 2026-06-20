@@ -4,8 +4,6 @@ import { useRouter } from 'next/navigation';
 import { getToken, isAdmin, isLoggedIn } from '@/lib/auth';
 import { api } from '@/lib/api';
 
-const API_URL = 'http://localhost:5000/api';
-
 export default function AdminDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('overview');
@@ -25,9 +23,14 @@ export default function AdminDashboard() {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    if (!isLoggedIn() || !isAdmin()) { router.push('/'); return; }
+    if (!isLoggedIn() || !isAdmin()) {
+      router.push('/login');
+      return;
+    }
+    setAuthChecked(true);
     fetchData();
   }, []);
 
@@ -39,11 +42,14 @@ export default function AdminDashboard() {
         api.get('/products'),
         api.get('/categories')
       ]);
-      setOrders(ords);
-      setProducts(prods);
-      setCategories(cats);
+      setOrders(Array.isArray(ords) ? ords : []);
+      setProducts(Array.isArray(prods) ? prods : []);
+      setCategories(Array.isArray(cats) ? cats : []);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load dashboard data:', err);
+      setOrders([]);
+      setProducts([]);
+      setCategories([]);
     } finally {
       setLoading(false);
     }
@@ -52,22 +58,25 @@ export default function AdminDashboard() {
   const updateOrderStatus = async (orderId, status) => {
     try {
       const token = getToken();
-      await api.put(`/orders/${orderId}/status`, { status }, token);
-      setOrders(orders.map(o => o.order_id === orderId ? { ...o, status } : o));
+      const data = await api.put(`/orders/${orderId}/status`, { status }, token);
+      if (data.message) {
+        setOrders(orders.map(o => o.order_id === orderId ? { ...o, status } : o));
+      }
     } catch (err) {
+      console.error('Failed to update order status:', err);
       alert('Error updating order status');
     }
   };
 
   const statusColor = (status) => {
     const colors = {
-      pending: 'bg-yellow-100 text-yellow-700',
-      processing: 'bg-blue-100 text-blue-700',
-      shipped: 'bg-purple-100 text-purple-700',
-      delivered: 'bg-green-100 text-green-700',
-      cancelled: 'bg-red-100 text-red-700',
+      pending: 'bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border-amber-200 dark:border-amber-900/30',
+      processing: 'bg-sky-100 text-sky-700 dark:bg-sky-950/30 dark:text-sky-400 border-sky-200 dark:border-sky-900/30',
+      shipped: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400 border-indigo-200 dark:border-indigo-900/30',
+      delivered: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/30',
+      cancelled: 'bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400 border-rose-200 dark:border-rose-900/30',
     };
-    return colors[status] || 'bg-gray-100 text-gray-700';
+    return colors[status] || 'bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400';
   };
 
   // =================== IMAGE UPLOAD ===================
@@ -87,22 +96,19 @@ export default function AdminDashboard() {
       const formData = new FormData();
       formData.append('image', imageFile);
 
-      const res = await fetch(`${API_URL}/upload`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData
-      });
-      const data = await res.json();
+      // Centralized API call using the custom upload helper
+      const data = await api.upload('/upload', formData, token);
 
       if (data.url) {
         setProductForm(prev => ({ ...prev, image_url: data.url }));
         setImageFile(null);
         return data.url;
       } else {
-        alert('Upload failed: ' + data.message);
+        alert('Upload failed: ' + (data.message || 'Unknown error'));
         return productForm.image_url;
       }
     } catch (err) {
+      console.error('Image upload error:', err);
       alert('Image upload failed!');
       return productForm.image_url;
     } finally {
@@ -115,7 +121,6 @@ export default function AdminDashboard() {
     e.preventDefault();
     setFormMessage('');
 
-    // Image file තිබුණොත් upload කරලා URL ගන්නවා
     let imageUrl = productForm.image_url;
     if (imageFile) {
       imageUrl = await uploadImage();
@@ -126,16 +131,27 @@ export default function AdminDashboard() {
       const submitData = { ...productForm, image_url: imageUrl };
 
       if (editingProduct) {
-        await api.put(`/products/${editingProduct}`, submitData, token);
-        setFormMessage('✅ Product updated!');
+        const data = await api.put(`/products/${editingProduct}`, submitData, token);
+        if (data.message?.includes('error') || data.message?.includes('failed')) {
+          setFormMessage('❌ ' + data.message);
+        } else {
+          setFormMessage('✅ Product updated successfully!');
+          resetForm();
+          fetchData();
+        }
       } else {
-        await api.post('/products', submitData, token);
-        setFormMessage('✅ Product added!');
+        const data = await api.post('/products', submitData, token);
+        if (data.productId) {
+          setFormMessage('✅ Product added successfully!');
+          resetForm();
+          fetchData();
+        } else {
+          setFormMessage('❌ ' + (data.message || 'Error occurred'));
+        }
       }
-      resetForm();
-      fetchData();
     } catch (err) {
-      setFormMessage('❌ Error occurred');
+      console.error('Failed to save product:', err);
+      setFormMessage('❌ Error occurred saving product');
     }
   };
 
@@ -157,12 +173,17 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteProduct = async (productId) => {
-    if (!confirm('Delete කරන්නද?')) return;
+    if (!confirm('මෙම product එක ඉවත් කිරීමට (Delete) ඔබට සහතිකද?')) return;
     try {
       const token = getToken();
-      await api.delete(`/products/${productId}`, token);
-      setProducts(products.filter(p => p.product_id !== productId));
+      const res = await api.delete(`/products/${productId}`, token);
+      if (res.message?.includes('Cannot delete')) {
+        alert(res.message);
+      } else {
+        setProducts(products.filter(p => p.product_id !== productId));
+      }
     } catch (err) {
+      console.error('Failed to delete product:', err);
       alert('Error deleting product');
     }
   };
@@ -178,23 +199,28 @@ export default function AdminDashboard() {
   const totalRevenue = orders.filter(o => o.status !== 'cancelled').reduce((sum, o) => sum + parseFloat(o.total_amount || 0), 0);
   const pendingOrders = orders.filter(o => o.status === 'pending').length;
 
-  const inputClass = "w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
-  const labelClass = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1";
+  const inputClass = "w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 dark:focus:ring-violet-500/50 transition-all font-medium";
+  const labelClass = "block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5";
+
+  if (!authChecked) return null;
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center dark:bg-gray-950">
-      <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"/>
+    <div className="min-h-screen flex items-center justify-center bg-bg-primary">
+      <div className="w-8 h-8 border-4 border-brand-primary dark:border-violet-500 border-t-transparent rounded-full animate-spin"/>
     </div>
   );
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <div className="max-w-7xl mx-auto px-6 py-8">
+    <main className="min-h-screen bg-bg-primary pb-20">
+      <div className="max-w-7xl mx-auto px-6 py-10">
 
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-8">⚙️ Admin Dashboard</h1>
+        <div className="mb-8">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Admin Dashboard</h1>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">භාණ්ඩ, ඇණවුම් සහ සංඛ්‍යාලේඛන කළමනාකරණය</p>
+        </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-8 border-b border-gray-200 dark:border-gray-700">
+        {/* Tab Buttons bar */}
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none mb-8 border-b border-slate-200/50 dark:border-slate-800/50">
           {[
             { id: 'overview', label: '📊 Overview' },
             { id: 'orders', label: '📦 Orders' },
@@ -204,190 +230,221 @@ export default function AdminDashboard() {
             <button
               key={tab.id}
               onClick={() => { setActiveTab(tab.id); if (tab.id !== 'add-product') resetForm(); }}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition ${activeTab === tab.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'}`}
+              className={`px-5 py-3 text-xs font-bold border-b-2 transition-all duration-200 flex-shrink-0 ${
+                activeTab === tab.id 
+                  ? 'border-brand-primary text-brand-primary dark:border-violet-500 dark:text-violet-400' 
+                  : 'border-transparent text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
             >
               {tab.label}
             </button>
           ))}
         </div>
 
-        {/* OVERVIEW */}
+        {/* TAB 1: OVERVIEW */}
         {activeTab === 'overview' && (
-          <div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+          <div className="space-y-8 animate-in fade-in duration-200">
+            {/* Stats list */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
               {[
-                { label: 'Total Orders', value: orders.length, color: 'text-blue-600' },
-                { label: 'Pending Orders', value: pendingOrders, color: 'text-yellow-600' },
-                { label: 'Total Products', value: products.length, color: 'text-purple-600' },
-                { label: 'Total Revenue', value: `Rs. ${totalRevenue.toLocaleString()}`, color: 'text-green-600' },
+                { label: 'Total Orders', value: orders.length, color: 'text-brand-primary dark:text-indigo-400' },
+                { label: 'Pending Orders', value: pendingOrders, color: 'text-amber-500 dark:text-amber-400' },
+                { label: 'Total Products', value: products.length, color: 'text-violet-500 dark:text-violet-400' },
+                { label: 'Total Revenue', value: `Rs. ${totalRevenue.toLocaleString()}`, color: 'text-emerald-500 dark:text-emerald-400' },
               ].map((stat, i) => (
-                <div key={i} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{stat.label}</p>
-                  <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+                <div key={i} className="glass-panel rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/60 shadow-sm p-5 hover:shadow-md transition-shadow">
+                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">{stat.label}</p>
+                  <p className={`text-xl sm:text-2xl font-black ${stat.color}`}>{stat.value}</p>
                 </div>
               ))}
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
-              <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4">Recent Orders</h2>
-              <div className="space-y-3">
+            {/* Recent Orders table */}
+            <div className="glass-panel rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/60 shadow-sm p-6">
+              <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-4 uppercase tracking-wider flex items-center gap-1">
+                <span>📋</span> Recent Orders
+              </h2>
+              <div className="space-y-4">
                 {orders.slice(0, 5).map(order => (
-                  <div key={order.order_id} className="flex items-center justify-between py-2 border-b border-gray-50 dark:border-gray-700">
+                  <div key={order.order_id} className="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b border-slate-200/40 dark:border-slate-800/40 gap-2">
                     <div>
-                      <p className="font-medium text-gray-800 dark:text-gray-100">Order #{order.order_id}</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{order.name} • {order.email}</p>
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-100">Order #{order.order_id}</p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">{order.name} • {order.email}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-blue-600">Rs. {parseFloat(order.total_amount).toLocaleString()}</p>
-                      <span className={`text-xs px-2 py-1 rounded-full ${statusColor(order.status)}`}>{order.status}</span>
+                    <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2">
+                      <p className="text-xs font-black text-brand-primary dark:text-violet-400">Rs. {parseFloat(order.total_amount).toLocaleString()}</p>
+                      <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold border ${statusColor(order.status)}`}>{order.status}</span>
                     </div>
                   </div>
                 ))}
+                {orders.length === 0 && (
+                  <p className="text-center py-6 text-xs text-slate-400">No orders placed yet.</p>
+                )}
               </div>
             </div>
           </div>
         )}
 
-        {/* ORDERS */}
+        {/* TAB 2: ORDERS LIST */}
         {activeTab === 'orders' && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-100 dark:border-gray-600">
-                <tr>
-                  {['Order', 'Customer', 'Amount', 'Status', 'Update'].map(h => (
-                    <th key={h} className="text-left px-6 py-3 text-sm font-medium text-gray-600 dark:text-gray-300">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
-                {orders.map(order => (
-                  <tr key={order.order_id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td className="px-6 py-4">
-                      <p className="font-medium text-gray-800 dark:text-gray-100">#{order.order_id}</p>
-                      <p className="text-xs text-gray-400">{new Date(order.order_date).toLocaleDateString()}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-sm text-gray-800 dark:text-gray-100">{order.name}</p>
-                      <p className="text-xs text-gray-400">{order.email}</p>
-                    </td>
-                    <td className="px-6 py-4 font-bold text-blue-600">Rs. {parseFloat(order.total_amount).toLocaleString()}</td>
-                    <td className="px-6 py-4">
-                      <span className={`text-xs px-3 py-1 rounded-full font-medium ${statusColor(order.status)}`}>{order.status}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <select
-                        value={order.status}
-                        onChange={(e) => updateOrderStatus(order.order_id, e.target.value)}
-                        className="border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        {['pending', 'processing', 'shipped', 'delivered', 'cancelled'].map(s => (
-                          <option key={s} value={s}>{s}</option>
-                        ))}
-                      </select>
-                    </td>
+          <div className="glass-panel rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/60 shadow-sm overflow-hidden animate-in fade-in duration-200">
+            {/* Scrollable table container */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[700px]">
+                <thead className="bg-slate-100/50 dark:bg-slate-850/50 border-b border-slate-200 dark:border-slate-800">
+                  <tr>
+                    {['Order', 'Customer', 'Amount', 'Status', 'Update Status'].map(h => (
+                      <th key={h} className="px-6 py-4 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-200/50 dark:divide-slate-800/50 text-xs">
+                  {orders.map(order => (
+                    <tr key={order.order_id} className="hover:bg-slate-100/20 dark:hover:bg-slate-800/10 font-medium">
+                      <td className="px-6 py-4">
+                        <p className="font-bold text-slate-850 dark:text-slate-100">#{order.order_id}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">{new Date(order.order_date).toLocaleDateString()}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-slate-850 dark:text-slate-100 font-bold">{order.name}</p>
+                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">{order.email}</p>
+                      </td>
+                      <td className="px-6 py-4 font-black text-brand-primary dark:text-violet-400">Rs. {parseFloat(order.total_amount).toLocaleString()}</td>
+                      <td className="px-6 py-4">
+                        <span className={`text-[9px] px-2.5 py-0.5 rounded-full font-bold border ${statusColor(order.status)}`}>{order.status}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <select
+                          value={order.status}
+                          onChange={(e) => updateOrderStatus(order.order_id, e.target.value)}
+                          className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 text-[11px] text-slate-700 dark:text-slate-300 font-bold focus:outline-none focus:ring-2 focus:ring-brand-primary/50 dark:focus:ring-violet-500/50"
+                        >
+                          {['pending', 'processing', 'shipped', 'delivered', 'cancelled'].map(s => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                  {orders.length === 0 && (
+                    <tr>
+                      <td colSpan="5" className="text-center py-10 text-slate-400">No orders found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
-        {/* PRODUCTS */}
+        {/* TAB 3: PRODUCTS LIST */}
         {activeTab === 'products' && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-100 dark:border-gray-600">
-                <tr>
-                  {['Product', 'Category', 'Price', 'Stock', 'Actions'].map(h => (
-                    <th key={h} className="text-left px-6 py-3 text-sm font-medium text-gray-600 dark:text-gray-300">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
-                {products.map(product => (
-                  <tr key={product.product_id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gray-100 dark:bg-gray-600 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
-                          {product.image_url ? (
-                            <img src={product.image_url} alt={product.product_name} className="w-full h-full object-cover"/>
-                          ) : <span>🖥️</span>}
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-800 dark:text-gray-100 line-clamp-1">{product.product_name}</p>
-                          <p className="text-xs text-gray-400">{product.brand}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">{product.category_name}</td>
-                    <td className="px-6 py-4 font-bold text-blue-600">Rs. {parseFloat(product.price).toLocaleString()}</td>
-                    <td className="px-6 py-4">
-                      <span className={`text-sm font-medium ${product.stock_quantity > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                        {product.stock_quantity}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-2">
-                        <button onClick={() => handleEditProduct(product)} className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 px-3 py-1 rounded-lg text-sm hover:bg-blue-100 dark:hover:bg-blue-900/50 transition">
-                          ✏️ Edit
-                        </button>
-                        <button onClick={() => handleDeleteProduct(product.product_id)} className="bg-red-50 dark:bg-red-900/30 text-red-500 px-3 py-1 rounded-lg text-sm hover:bg-red-100 dark:hover:bg-red-900/50 transition">
-                          🗑️ Delete
-                        </button>
-                      </div>
-                    </td>
+          <div className="glass-panel rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/60 shadow-sm overflow-hidden animate-in fade-in duration-200">
+            {/* Scrollable table container */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[700px]">
+                <thead className="bg-slate-100/50 dark:bg-slate-850/50 border-b border-slate-200 dark:border-slate-800">
+                  <tr>
+                    {['Product', 'Category', 'Price', 'Stock', 'Actions'].map(h => (
+                      <th key={h} className="px-6 py-4 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-200/50 dark:divide-slate-800/50 text-xs">
+                  {products.map(product => (
+                    <tr key={product.product_id} className="hover:bg-slate-100/20 dark:hover:bg-slate-800/10 font-medium">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-slate-100 dark:bg-slate-950 border border-slate-200/40 dark:border-slate-800/40 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
+                            {product.image_url ? (
+                              <img src={product.image_url} alt={product.product_name} className="w-full h-full object-cover"/>
+                            ) : <span className="text-base">🖥️</span>}
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-800 dark:text-slate-100 line-clamp-1">{product.product_name}</p>
+                            <p className="text-[10px] text-slate-400 mt-0.5 font-bold uppercase">{product.brand}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-slate-500 dark:text-slate-400 font-semibold">{product.category_name}</td>
+                      <td className="px-6 py-4 font-black text-brand-primary dark:text-violet-400">Rs. {parseFloat(product.price).toLocaleString()}</td>
+                      <td className="px-6 py-4">
+                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${product.stock_quantity > 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                          {product.stock_quantity} available
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex gap-2">
+                          <button onClick={() => handleEditProduct(product)} className="bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary dark:text-indigo-400 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 px-3 py-1.5 rounded-lg text-[10px] font-bold transition">
+                            ✏️ Edit
+                          </button>
+                          <button onClick={() => handleDeleteProduct(product.product_id)} className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 px-3 py-1.5 rounded-lg text-[10px] font-bold transition">
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {products.length === 0 && (
+                    <tr>
+                      <td colSpan="5" className="text-center py-10 text-slate-400">No products found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
-        {/* ADD/EDIT PRODUCT */}
+        {/* TAB 4: ADD/EDIT PRODUCT FORM */}
         {activeTab === 'add-product' && (
-          <div className="max-w-2xl">
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
-              <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-6">
-                {editingProduct ? '✏️ Edit Product' : '➕ Add New Product'}
+          <div className="max-w-2xl animate-in fade-in duration-200">
+            <div className="glass-panel rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/60 shadow-sm p-6 sm:p-8">
+              <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-6 uppercase tracking-wider pb-2 border-b border-slate-200/40 dark:border-slate-800/40">
+                {editingProduct ? '✏️ Edit Product details' : '➕ Add New Product'}
               </h2>
 
               {formMessage && (
-                <div className={`px-4 py-3 rounded-lg mb-4 text-sm ${formMessage.includes('✅') ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'}`}>
+                <div className={`px-4 py-3 rounded-xl mb-6 text-xs font-semibold ${
+                  formMessage.includes('✅') 
+                    ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' 
+                    : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                }`}>
                   {formMessage}
                 </div>
               )}
 
               <form onSubmit={handleProductSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className={labelClass}>Product Name</label>
-                    <input type="text" required value={productForm.product_name} onChange={(e) => setProductForm({ ...productForm, product_name: e.target.value })} className={inputClass}/>
+                    <input type="text" required value={productForm.product_name} onChange={(e) => setProductForm({ ...productForm, product_name: e.target.value })} className={inputClass} placeholder="e.g. Core i5 Laptop"/>
                   </div>
                   <div>
                     <label className={labelClass}>Brand</label>
-                    <input type="text" value={productForm.brand} onChange={(e) => setProductForm({ ...productForm, brand: e.target.value })} className={inputClass}/>
+                    <input type="text" value={productForm.brand} onChange={(e) => setProductForm({ ...productForm, brand: e.target.value })} className={inputClass} placeholder="e.g. ASUS"/>
                   </div>
                 </div>
 
                 <div>
                   <label className={labelClass}>Description</label>
-                  <textarea rows={3} required value={productForm.description} onChange={(e) => setProductForm({ ...productForm, description: e.target.value })} className={`${inputClass} resize-none`}/>
+                  <textarea rows={3} required value={productForm.description} onChange={(e) => setProductForm({ ...productForm, description: e.target.value })} className={`${inputClass} resize-none`} placeholder="Product එක පිළිබඳ විස්තරයක්..."/>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className={labelClass}>Price (Rs.)</label>
-                    <input type="number" required min="0" value={productForm.price} onChange={(e) => setProductForm({ ...productForm, price: e.target.value })} className={inputClass}/>
+                    <input type="number" required min="0" value={productForm.price} onChange={(e) => setProductForm({ ...productForm, price: e.target.value })} className={inputClass} placeholder="e.g. 150000"/>
                   </div>
                   <div>
-                    <label className={labelClass}>Stock</label>
-                    <input type="number" required min="0" value={productForm.stock_quantity} onChange={(e) => setProductForm({ ...productForm, stock_quantity: e.target.value })} className={inputClass}/>
+                    <label className={labelClass}>Stock Quantity</label>
+                    <input type="number" required min="0" value={productForm.stock_quantity} onChange={(e) => setProductForm({ ...productForm, stock_quantity: e.target.value })} className={inputClass} placeholder="e.g. 10"/>
                   </div>
                 </div>
 
                 <div>
                   <label className={labelClass}>Category</label>
-                  <select required value={productForm.category_id} onChange={(e) => setProductForm({ ...productForm, category_id: e.target.value })} className={inputClass}>
+                  <select required value={productForm.category_id} onChange={(e) => setProductForm({ ...productForm, category_id: e.target.value })} className={`${inputClass} font-bold`}>
                     <option value="">Select Category</option>
                     {categories.map(cat => (
                       <option key={cat.category_id} value={cat.category_id}>{cat.category_name}</option>
@@ -395,17 +452,17 @@ export default function AdminDashboard() {
                   </select>
                 </div>
 
-                {/* Image Upload */}
-                <div>
+                {/* Cloudinary Image Selector and Uploader */}
+                <div className="border-t border-slate-200/40 dark:border-slate-800/40 pt-4 mt-6">
                   <label className={labelClass}>Product Image</label>
 
-                  {/* Preview */}
+                  {/* Thumbnail Preview */}
                   {(imagePreview || productForm.image_url) && (
-                    <div className="mb-3">
+                    <div className="mb-3.5 relative w-28 h-28 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
                       <img
                         src={imagePreview || productForm.image_url}
-                        alt="Preview"
-                        className="w-32 h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
+                        alt="Product Preview"
+                        className="w-full h-full object-cover"
                       />
                     </div>
                   )}
@@ -415,42 +472,49 @@ export default function AdminDashboard() {
                     type="file"
                     accept="image/*"
                     onChange={handleImageSelect}
-                    className="w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none cursor-pointer"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-400 focus:outline-none cursor-pointer file:mr-4 file:py-1 file:px-3 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:bg-brand-primary/10 file:text-brand-primary dark:file:bg-violet-500/10 dark:file:text-violet-400 hover:file:bg-brand-primary/20 dark:hover:file:bg-violet-500/20"
                   />
 
-                  Upload Button
+                  {/* Cloudinary Upload Trigger button */}
                   {imageFile && (
                     <button
                       type="button"
                       onClick={uploadImage}
                       disabled={uploading}
-                      className="mt-2 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition disabled:opacity-50 flex items-center gap-2"
+                      className="mt-2.5 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition disabled:opacity-50 flex items-center gap-1.5 shadow-sm shadow-emerald-600/10 active:scale-95"
                     >
                       {uploading ? (
                         <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"/>
                           Uploading...
                         </>
                       ) : '☁️ Upload to Cloudinary'}
                     </button>
                   )}
 
-                  {/* Uploaded Status */}
                   {productForm.image_url && !imageFile && (
-                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">✅ Image ready</p>
+                    <p className="text-[10px] text-emerald-500 font-bold mt-1.5 flex items-center gap-1">
+                      <span>✅</span>
+                      <span>Image uploaded and ready</span>
+                    </p>
                   )}
                 </div>
 
-                <div className="flex gap-3 pt-2">
+                {/* Form Buttons */}
+                <div className="flex gap-3 pt-4 border-t border-slate-200/40 dark:border-slate-800/40 mt-6">
                   <button
                     type="submit"
                     disabled={uploading}
-                    className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50"
+                    className="flex-1 bg-brand-primary hover:bg-indigo-700 dark:bg-violet-600 dark:hover:bg-violet-500 text-white py-3 rounded-xl text-xs font-bold transition disabled:opacity-50 active:scale-98"
                   >
                     {editingProduct ? 'Update Product' : 'Add Product'}
                   </button>
                   {editingProduct && (
-                    <button type="button" onClick={() => { resetForm(); setActiveTab('products'); }} className="flex-1 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 py-2 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                    <button 
+                      type="button" 
+                      onClick={() => { resetForm(); setActiveTab('products'); }} 
+                      className="flex-1 border border-slate-250 dark:border-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition active:scale-98"
+                    >
                       Cancel
                     </button>
                   )}

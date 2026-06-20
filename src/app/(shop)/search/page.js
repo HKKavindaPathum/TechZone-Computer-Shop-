@@ -3,6 +3,7 @@ import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import ProductCard from '@/components/ProductCard';
 
 function SearchResults() {
   const searchParams = useSearchParams();
@@ -14,7 +15,10 @@ function SearchResults() {
   const [search, setSearch] = useState(query);
 
   useEffect(() => {
-    if (query) fetchResults(query);
+    if (query) {
+      setSearch(query);
+      fetchResults(query);
+    }
   }, [query]);
 
   const fetchResults = async (q) => {
@@ -28,7 +32,7 @@ function SearchResults() {
       );
       setProducts(filtered);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to fetch search results:', err);
     } finally {
       setLoading(false);
     }
@@ -36,102 +40,75 @@ function SearchResults() {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (search.trim()) router.push(`/search?q=${encodeURIComponent(search.trim())}`);
-  };
-
-  const addToCart = (e, product) => {
-    e.preventDefault();
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const index = cart.findIndex(item => item.productId == product.product_id);
-    if (index === -1) {
-      cart.push({ productId: product.product_id, name: product.product_name, price: product.price, image: product.image_url, qty: 1 });
-    } else {
-      cart[index].qty += 1;
+    if (search.trim()) {
+      router.push(`/search?q=${encodeURIComponent(search.trim())}`);
     }
-    localStorage.setItem('cart', JSON.stringify(cart));
-    window.dispatchEvent(new Event('cartUpdated'));
-    alert('✅ Cart එකට දැම්මා!');
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <main className="min-h-screen bg-bg-primary pb-20">
       <div className="max-w-6xl mx-auto px-6 py-10">
 
-        <form onSubmit={handleSearch} className="flex gap-3 mb-8">
+        {/* Search Header Form */}
+        <form onSubmit={handleSearch} className="flex gap-3 mb-8 bg-white/50 dark:bg-slate-900/35 border border-slate-200/50 dark:border-slate-800/50 p-4 rounded-2xl">
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search products..."
-            className="flex-1 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-xl px-5 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+            placeholder="Search products by brand or name..."
+            className="flex-1 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 dark:focus:ring-violet-500/50"
           />
-          <button type="submit" className="bg-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-700 transition">
+          <button 
+            type="submit" 
+            className="bg-brand-primary hover:bg-indigo-700 dark:bg-violet-600 dark:hover:bg-violet-500 text-white px-6 py-3 rounded-xl font-bold transition duration-200 hover:shadow-md active:scale-95 text-xs"
+          >
             Search
           </button>
         </form>
 
         {query && (
-          <p className="text-gray-500 dark:text-gray-400 mb-6">
-            {loading ? 'Searching...' : `"${query}" සඳහා ${products.length} results`}
+          <p className="text-slate-400 dark:text-slate-500 text-xs font-semibold mb-6 uppercase tracking-wider">
+            {loading ? 'Searching...' : `"${query}" සඳහා results ${products.length} ක් සොයාගැනිණි.`}
           </p>
         )}
 
+        {/* Loading Skeleton */}
         {loading && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-white dark:bg-gray-800 rounded-xl h-64 animate-pulse"/>
+              <div key={i} className="bg-slate-200 dark:bg-slate-800/50 rounded-2xl h-80 animate-pulse border border-slate-100/50 dark:border-slate-800/50"/>
             ))}
           </div>
         )}
 
+        {/* Empty States */}
         {!loading && query && products.length === 0 && (
-          <div className="text-center py-20">
+          <div className="text-center py-24 glass-panel rounded-3xl p-8 bg-white/40 dark:bg-slate-900/30">
             <p className="text-5xl mb-4">🔍</p>
-            <p className="text-lg text-gray-500 dark:text-gray-400 mb-2">Results නෑ</p>
-            <p className="text-gray-400 dark:text-gray-500 text-sm mb-6">"{query}" සඳහා products හොයාගන්න බැරි උනා</p>
-            <Link href="/products" className="bg-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-700 transition">
+            <h3 className="text-base font-bold text-slate-700 dark:text-slate-200">Results No Found</h3>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 mb-6">"{query}" සඳහා ගැලපෙන භාණ්ඩ කිසිවක් සොයා ගැනීමට නොහැකි විය.</p>
+            <Link 
+              href="/products" 
+              className="bg-brand-primary dark:bg-violet-600 text-white px-6 py-3 rounded-xl text-xs font-bold hover:shadow-md transition active:scale-95"
+            >
               All Products බලන්න
             </Link>
           </div>
         )}
 
         {!query && (
-          <div className="text-center py-20">
-            <p className="text-5xl mb-4">🔍</p>
-            <p className="text-lg text-gray-500 dark:text-gray-400">Search කරන්න</p>
+          <div className="text-center py-24 glass-panel rounded-3xl p-8 bg-white/40 dark:bg-slate-900/30">
+            <p className="text-5xl mb-4 text-indigo-400 dark:text-violet-400">🔍</p>
+            <h3 className="text-base font-bold text-slate-700 dark:text-slate-200">Search Products</h3>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">ඉහත සෙවුම් කොටුවෙන් ඔබට අවශ්‍ය පරිගණක උපාංග සොයාගන්න</p>
           </div>
         )}
 
+        {/* Results Grid */}
         {!loading && products.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
             {products.map((product) => (
-              <div key={product.product_id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition border border-gray-100 dark:border-gray-700 overflow-hidden group">
-                <Link href={`/products/${product.product_id}`}>
-                  <div className="h-40 bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
-                    {product.image_url ? (
-                      <img src={product.image_url} alt={product.product_name} className="w-full h-full object-cover group-hover:scale-105 transition"/>
-                    ) : (
-                      <span className="text-4xl">🖥️</span>
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <p className="text-xs text-blue-600 font-medium mb-1">{product.brand}</p>
-                    <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-2 line-clamp-2">{product.product_name}</h3>
-                    <p className="text-blue-600 font-bold mb-3">Rs. {product.price?.toLocaleString()}</p>
-                  </div>
-                </Link>
-                <div className="px-4 pb-4">
-                  {product.stock_quantity > 0 ? (
-                    <button onClick={(e) => addToCart(e, product)} className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition">
-                      Add to Cart
-                    </button>
-                  ) : (
-                    <button disabled className="w-full bg-gray-200 dark:bg-gray-700 text-gray-400 py-2 rounded-lg text-sm font-medium cursor-not-allowed">
-                      Out of Stock
-                    </button>
-                  )}
-                </div>
-              </div>
+              <ProductCard key={product.product_id} product={product} />
             ))}
           </div>
         )}
@@ -144,8 +121,8 @@ function SearchResults() {
 export default function SearchPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center dark:bg-gray-950">
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"/>
+      <div className="min-h-screen flex items-center justify-center bg-bg-primary">
+        <div className="w-8 h-8 border-4 border-brand-primary dark:border-violet-500 border-t-transparent rounded-full animate-spin"/>
       </div>
     }>
       <SearchResults />

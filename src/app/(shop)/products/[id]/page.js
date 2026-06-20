@@ -13,9 +13,14 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     const fetchProduct = async () => {
-      const data = await api.get(`/products/${id}`);
-      setProduct(data);
-      setLoading(false);
+      try {
+        const data = await api.get(`/products/${id}`);
+        setProduct(data);
+      } catch (err) {
+        console.error('Failed to fetch product details:', err);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchProduct();
   }, [id]);
@@ -23,88 +28,183 @@ export default function ProductDetailPage() {
   const addToCart = () => {
     const cart = JSON.parse(localStorage.getItem('cart') || '[]');
     const index = cart.findIndex(item => item.productId == product.product_id);
+    
     if (index === -1) {
-      cart.push({ productId: product.product_id, name: product.product_name, price: product.price, image: product.image_url, qty: quantity });
+      cart.push({
+        productId: product.product_id,
+        name: product.product_name,
+        price: product.price,
+        image: product.image_url,
+        qty: quantity
+      });
     } else {
       cart[index].qty += quantity;
     }
+    
     localStorage.setItem('cart', JSON.stringify(cart));
     window.dispatchEvent(new Event('cartUpdated'));
+    
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center dark:bg-gray-950">
-      <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"/>
+    <div className="min-h-screen flex items-center justify-center bg-bg-primary">
+      <div className="w-8 h-8 border-4 border-brand-primary dark:border-violet-500 border-t-transparent rounded-full animate-spin"/>
     </div>
   );
 
-  if (!product) return (
-    <div className="min-h-screen flex items-center justify-center text-gray-400 dark:bg-gray-950">
-      Product not found
+  if (!product || product.message === 'Product not found') return (
+    <div className="min-h-screen flex flex-col items-center justify-center text-slate-400 bg-bg-primary">
+      <span className="text-6xl mb-4">🖥️</span>
+      <h2 className="text-lg font-bold text-slate-700 dark:text-slate-200">Product not found</h2>
+      <button onClick={() => router.push('/products')} className="mt-4 bg-brand-primary dark:bg-violet-600 text-white px-5 py-2 rounded-xl text-xs font-bold hover:shadow-md transition">
+        Back to Products
+      </button>
     </div>
   );
+
+  const isOutOfStock = product.stock_quantity <= 0;
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <main className="min-h-screen bg-bg-primary pb-20">
       <div className="max-w-5xl mx-auto px-6 py-10">
 
-        <button onClick={() => router.back()} className="text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 mb-6 flex items-center gap-1">
-          ← Back
+        {/* Back Button */}
+        <button 
+          onClick={() => router.back()} 
+          className="text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-brand-primary dark:hover:text-violet-400 mb-6 flex items-center gap-1.5 transition-colors group"
+        >
+          <span className="group-hover:-translate-x-0.5 transition-transform">←</span>
+          <span>Back</span>
         </button>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        {/* Product Details Panel */}
+        <div className="glass-panel rounded-3xl overflow-hidden bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/60 shadow-sm">
           <div className="grid md:grid-cols-2 gap-0">
 
-            {/* Image */}
-            <div className="h-80 md:h-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+            {/* Product Image section */}
+            <div className="h-80 md:h-[450px] bg-slate-100 dark:bg-slate-950 flex items-center justify-center overflow-hidden border-b md:border-b-0 md:border-r border-slate-200/65 dark:border-slate-800/65 relative">
               {product.image_url ? (
-                <img src={product.image_url} alt={product.product_name} className="w-full h-full object-cover"/>
+                <img 
+                  src={product.image_url} 
+                  alt={product.product_name} 
+                  className="w-full h-full object-cover transition-transform duration-500 hover:scale-102"
+                />
               ) : (
                 <span className="text-8xl">🖥️</span>
               )}
             </div>
 
-            {/* Details */}
-            <div className="p-8">
-              <p className="text-sm text-blue-600 font-medium mb-2">{product.brand}</p>
-              <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">{product.product_name}</h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{product.category_name}</p>
-              <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">{product.description}</p>
-
-              <p className="text-3xl font-bold text-blue-600 mb-6">
-                Rs. {product.price?.toLocaleString()}
-              </p>
-
-              <p className={`text-sm font-medium mb-6 ${product.stock_quantity > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                {product.stock_quantity > 0 ? `✅ In Stock (${product.stock_quantity})` : '❌ Out of Stock'}
-              </p>
-
-              {product.stock_quantity > 0 && (
-                <div className="flex items-center gap-4 mb-6">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Quantity:</span>
-                  <div className="flex items-center border border-gray-200 dark:border-gray-600 rounded-lg">
-                    <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:text-blue-600">
-                      −
-                    </button>
-                    <span className="px-4 py-2 font-medium text-gray-800 dark:text-gray-100">{quantity}</span>
-                    <button onClick={() => setQuantity(Math.min(product.stock_quantity, quantity + 1))} className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:text-blue-600">
-                      +
-                    </button>
-                  </div>
+            {/* Product Info section */}
+            <div className="p-8 sm:p-10 flex flex-col justify-between">
+              <div>
+                {/* Brand */}
+                {product.brand && (
+                  <span className="text-xs uppercase tracking-wider text-brand-primary dark:text-violet-400 font-extrabold mb-2 block">
+                    {product.brand}
+                  </span>
+                )}
+                
+                {/* Title */}
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-slate-100 mb-3 tracking-tight">
+                  {product.product_name}
+                </h1>
+                
+                {/* Category tag */}
+                {product.category_name && (
+                  <span className="inline-block bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs px-2.5 py-1 rounded-lg font-semibold mb-6">
+                    Category: {product.category_name}
+                  </span>
+                )}
+                
+                {/* Description */}
+                <div className="border-t border-slate-200/40 dark:border-slate-800/40 pt-4 mb-6">
+                  <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Description</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                    {product.description || 'මෙම නිෂ්පාදනය සඳහා විස්තරයක් නොමැත.'}
+                  </p>
                 </div>
-              )}
+              </div>
 
-              {product.stock_quantity > 0 ? (
-                <button onClick={addToCart} className={`w-full py-3 rounded-xl font-semibold transition ${added ? 'bg-green-500 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
-                  {added ? '✅ Added to Cart!' : 'Add to Cart'}
-                </button>
-              ) : (
-                <button disabled className="w-full bg-gray-200 dark:bg-gray-700 text-gray-400 py-3 rounded-xl font-semibold cursor-not-allowed">
-                  Out of Stock
-                </button>
-              )}
+              <div>
+                {/* Price section */}
+                <div className="flex items-baseline gap-2 mb-6">
+                  <span className="text-3xl font-black bg-gradient-to-r from-brand-primary to-brand-accent dark:from-violet-400 dark:to-cyan-400 bg-clip-text text-transparent">
+                    Rs. {product.price?.toLocaleString()}
+                  </span>
+                </div>
+
+                {/* Stock Level Badge */}
+                <div className="mb-6 flex items-center">
+                  {isOutOfStock ? (
+                    <span className="inline-flex items-center gap-1.5 bg-red-500/10 text-red-500 text-xs px-3 py-1.5 rounded-full font-bold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"/>
+                      ❌ Out of Stock
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-500 text-xs px-3 py-1.5 rounded-full font-bold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"/>
+                      ✅ In Stock ({product.stock_quantity} available)
+                    </span>
+                  )}
+                </div>
+
+                {/* Quantity Control Selector */}
+                {!isOutOfStock && (
+                  <div className="flex items-center gap-4 mb-6">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Quantity:</span>
+                    <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-950/40">
+                      <button 
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))} 
+                        className="px-3.5 py-2 text-slate-500 hover:text-brand-primary dark:text-slate-400 dark:hover:text-violet-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-bold text-lg"
+                      >
+                        −
+                      </button>
+                      <span className="px-5 py-2 font-bold text-slate-800 dark:text-slate-100 text-sm min-w-[30px] text-center">
+                        {quantity}
+                      </span>
+                      <button 
+                        onClick={() => setQuantity(Math.min(product.stock_quantity, quantity + 1))} 
+                        className="px-3.5 py-2 text-slate-500 hover:text-brand-primary dark:text-slate-400 dark:hover:text-violet-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-bold text-lg"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Action button */}
+                {isOutOfStock ? (
+                  <button 
+                    disabled 
+                    className="w-full bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 py-3.5 rounded-2xl font-bold cursor-not-allowed text-xs uppercase tracking-wider"
+                  >
+                    Out of Stock
+                  </button>
+                ) : (
+                  <button 
+                    onClick={addToCart} 
+                    className={`w-full py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all duration-300 transform active:scale-98 flex items-center justify-center gap-2 shadow-sm ${
+                      added 
+                        ? 'bg-emerald-500 text-white shadow-emerald-500/10' 
+                        : 'bg-brand-primary hover:bg-indigo-700 text-white dark:bg-violet-600 dark:hover:bg-violet-500 shadow-indigo-500/10 hover:shadow-md'
+                    }`}
+                  >
+                    {added ? (
+                      <>
+                        <span>✅</span>
+                        <span>Added to Cart!</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>🛒</span>
+                        <span>Add to Cart</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
