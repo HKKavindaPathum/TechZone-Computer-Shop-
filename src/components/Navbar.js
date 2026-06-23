@@ -17,7 +17,14 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false);
   const [theme, setThemeState] = useState('light');
 
+  function updateCartCount() {
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const count = cart.reduce((sum, item) => sum + item.qty, 0);
+    setCartCount(count);
+  }
+
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     if (isLoggedIn()) {
       setUser(getUser());
@@ -38,12 +45,6 @@ export default function Navbar() {
     window.addEventListener('cartUpdated', updateCartCount);
     return () => window.removeEventListener('cartUpdated', updateCartCount);
   }, [pathname]);
-
-  const updateCartCount = () => {
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const count = cart.reduce((sum, item) => sum + item.qty, 0);
-    setCartCount(count);
-  };
 
   const handleLogout = () => {
     logout();

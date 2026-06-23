@@ -86,7 +86,7 @@ function SearchResults() {
           <div className="text-center py-24 glass-panel rounded-3xl p-8 bg-white/40 dark:bg-slate-900/30">
             <p className="text-5xl mb-4">🔍</p>
             <h3 className="text-base font-bold text-slate-700 dark:text-slate-200">Results No Found</h3>
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 mb-6">"{query}" සඳහා ගැලපෙන භාණ්ඩ කිසිවක් සොයා ගැනීමට නොහැකි විය.</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 mb-6">&quot;{query}&quot; සඳහා ගැලපෙන භාණ්ඩ කිසිවක් සොයා ගැනීමට නොහැකි විය.</p>
             <Link 
               href="/products" 
               className="bg-brand-primary dark:bg-violet-600 text-white px-6 py-3 rounded-xl text-xs font-bold hover:shadow-md transition active:scale-95"

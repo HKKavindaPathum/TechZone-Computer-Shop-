@@ -9,7 +9,12 @@ export default function CheckoutPage() {
   const [cart, setCart] = useState({ items: [], total: 0 });
   const [loading, setLoading] = useState(true);
   const [placing, setPlacing] = useState(false);
-  const [formData, setFormData] = useState({ shipping_address: '', payment_method: 'cash' });
+  const [formData, setFormData] = useState({
+    recipient_name: '',
+    contact_number: '',
+    shipping_address: '',
+    payment_method: 'cash'
+  });
 
   useEffect(() => {
     if (!isLoggedIn()) {
@@ -17,8 +22,13 @@ export default function CheckoutPage() {
       return;
     }
     const user = getUser();
-    if (user?.address) {
-      setFormData(prev => ({ ...prev, shipping_address: user.address }));
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        recipient_name: user.name || '',
+        contact_number: user.phone || '',
+        shipping_address: user.address || ''
+      }));
     }
     fetchCart();
   }, []);
@@ -41,6 +51,14 @@ export default function CheckoutPage() {
   };
 
   const handlePlaceOrder = async () => {
+    if (!formData.recipient_name.trim()) {
+      alert('කරුණාකර ලබන්නාගේ නම (Recipient Name) ඇතුළත් කරන්න!');
+      return;
+    }
+    if (!formData.contact_number.trim()) {
+      alert('කරුණාකර දුරකථන අංකය (Contact Number) ඇතුළත් කරන්න!');
+      return;
+    }
     if (!formData.shipping_address.trim()) {
       alert('කරුණාකර භාණ්ඩ එවීමට අවශ්‍ය ලිපිනය (Shipping Address) ඇතුළත් කරන්න!');
       return;
@@ -48,7 +66,16 @@ export default function CheckoutPage() {
     setPlacing(true);
     try {
       const token = getToken();
-      const data = await api.post('/orders/checkout', formData, token);
+      
+      // Combine name, phone, and address to shipping_address field to store transparently in DB
+      const combinedAddress = `Name: ${formData.recipient_name.trim()}\nPhone: ${formData.contact_number.trim()}\nAddress: ${formData.shipping_address.trim()}`;
+      
+      const payload = {
+        shipping_address: combinedAddress,
+        payment_method: formData.payment_method
+      };
+      
+      const data = await api.post('/orders/checkout', payload, token);
       if (data.orderId) {
         localStorage.removeItem('cart');
         window.dispatchEvent(new Event('cartUpdated'));
@@ -90,18 +117,45 @@ export default function CheckoutPage() {
           {/* Form and Options section */}
           <div className="md:col-span-2 space-y-6">
 
-            {/* Shipping Address */}
-            <div className="glass-panel rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/60 shadow-sm p-6">
-              <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-4 uppercase tracking-wider flex items-center gap-1.5">
-                <span>📦</span> Shipping Address
+            {/* Shipping Address & Contact Info */}
+            <div className="glass-panel rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-sm p-6 space-y-5">
+              <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-2 uppercase tracking-wider flex items-center gap-1.5">
+                <span>📦</span> Shipping & Contact Information
               </h2>
-              <textarea
-                value={formData.shipping_address}
-                onChange={(e) => setFormData({ ...formData, shipping_address: e.target.value })}
-                rows={3}
-                placeholder="ඔබගේ ලිපිනය ඇතුළත් කරන්න..."
-                className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 dark:focus:ring-violet-500/50 resize-none font-medium"
-              />
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5 block">Recipient Name</label>
+                  <input
+                    type="text"
+                    value={formData.recipient_name}
+                    onChange={(e) => setFormData({ ...formData, recipient_name: e.target.value })}
+                    placeholder="ලබන්නාගේ නම..."
+                    className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-850 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 dark:focus:ring-violet-500/50 font-medium"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5 block">Contact Number</label>
+                  <input
+                    type="text"
+                    value={formData.contact_number}
+                    onChange={(e) => setFormData({ ...formData, contact_number: e.target.value })}
+                    placeholder="දුරකථන අංකය..."
+                    className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-850 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 dark:focus:ring-violet-500/50 font-medium"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5 block">Shipping Address</label>
+                <textarea
+                  value={formData.shipping_address}
+                  onChange={(e) => setFormData({ ...formData, shipping_address: e.target.value })}
+                  rows={3}
+                  placeholder="ඔබගේ ලිපිනය ඇතුළත් කරන්න..."
+                  className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-850 rounded-xl px-4 py-3 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 dark:focus:ring-violet-500/50 resize-none font-medium"
+                />
+              </div>
             </div>
 
             {/* Payment Method selection */}

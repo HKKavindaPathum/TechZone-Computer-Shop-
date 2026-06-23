@@ -19,6 +19,15 @@ export async function POST(request) {
       return NextResponse.json({ message: 'Shipping address is required' }, { status: 400 });
     }
 
+    // Check if user is blocked
+    const dbUser = await prisma.user.findUnique({
+      where: { user_id: userId },
+      select: { is_blocked: true }
+    });
+    if (dbUser?.is_blocked) {
+      return NextResponse.json({ message: 'Your account has been blocked. Please contact support.' }, { status: 403 });
+    }
+
     // Run interactive transaction in PostgreSQL
     const result = await prisma.$transaction(async (tx) => {
       

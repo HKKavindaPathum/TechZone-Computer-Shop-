@@ -35,15 +35,16 @@ model Category {
 }
 
 model User {
-  user_id  Int     @id @default(autoincrement())
-  name     String  @db.VarChar(100)
-  email    String  @unique @db.VarChar(100)
-  password String  @db.VarChar(255)
-  phone    String? @db.VarChar(20)
-  address  String? @db.Text
-  role     Role    @default(customer)
-  carts    Cart[]
-  orders   Order[]
+  user_id    Int     @id @default(autoincrement())
+  name       String  @db.VarChar(100)
+  email      String  @unique @db.VarChar(100)
+  password   String  @db.VarChar(255)
+  phone      String? @db.VarChar(20)
+  address    String? @db.Text
+  role       Role    @default(customer)
+  is_blocked Boolean @default(false)
+  carts      Cart[]
+  orders     Order[]
 }
 
 model Product {

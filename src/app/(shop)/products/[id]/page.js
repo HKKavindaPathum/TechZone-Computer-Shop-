@@ -25,6 +25,17 @@ export default function ProductDetailPage() {
     fetchProduct();
   }, [id]);
 
+  // Scroll to top when the product ID changes or when loading finishes to ensure the page starts at the top
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
+
+  useEffect(() => {
+    if (!loading) {
+      window.scrollTo(0, 0);
+    }
+  }, [loading]);
+
   const addToCart = () => {
     const cart = JSON.parse(localStorage.getItem('cart') || '[]');
     const index = cart.findIndex(item => item.productId == product.product_id);

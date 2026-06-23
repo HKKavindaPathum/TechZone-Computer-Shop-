@@ -45,6 +45,30 @@ async function main() {
 
   console.log('✅ Admin and Customer users created.');
 
+  console.log('🔄 Generating 10 customer users...');
+  const customerNames = [
+    'Amara Perera', 'Nimal Silva', 'Saman Kumara', 'Ruwan Fernando',
+    'Chathuri Jayasinghe', 'Kasun Rajapakse', 'Dilini Wijesinghe',
+    'Pathum Herath', 'Kavinda Bandara', 'Menaka Ranasinghe'
+  ];
+
+  const createdCustomers = [];
+  const defaultCustomerPassword = await bcrypt.hash('customer123', 10);
+  for (let i = 0; i < customerNames.length; i++) {
+    const user = await prisma.user.create({
+      data: {
+        name: customerNames[i],
+        email: `customer${i + 1}@gmail.com`,
+        password: defaultCustomerPassword,
+        phone: `077${Math.floor(1000000 + Math.random() * 9000000)}`,
+        address: `${['Colombo', 'Kandy', 'Galle', 'Negombo', 'Jaffna', 'Kurunegala', 'Gampaha'][i % 7]}, Sri Lanka`,
+        role: 'customer',
+      }
+    });
+    createdCustomers.push(user);
+  }
+  console.log(`✅ 10 customer users created.`);
+
   // Create Categories
   const catLaptops = await prisma.category.create({
     data: { category_name: 'Laptops', description: 'High-performance laptops for work, gaming and study.' }
@@ -261,6 +285,86 @@ async function main() {
   });
 
   console.log('✅ Products seeded successfully.');
+
+  console.log('🔄 Generating 20 random orders...');
+  const products = await prisma.product.findMany();
+  
+  const orderStatuses = ['delivered', 'delivered', 'delivered', 'shipped', 'processing', 'pending', 'cancelled'];
+  const paymentMethods = ['Card Payment', 'Cash on Delivery', 'Bank Transfer'];
+
+  for (let i = 0; i < 20; i++) {
+    // Pick a random user
+    const user = createdCustomers[Math.floor(Math.random() * createdCustomers.length)];
+    
+    // Generate random order date within the last 10 days
+    const orderDate = new Date();
+    orderDate.setDate(orderDate.getDate() - Math.floor(Math.random() * 10));
+    orderDate.setHours(Math.floor(Math.random() * 12) + 8, Math.floor(Math.random() * 60), Math.floor(Math.random() * 60));
+
+    // Choose 1 to 3 items
+    const numItems = Math.floor(Math.random() * 3) + 1;
+    const orderItemsData = [];
+    let totalAmount = 0;
+    
+    // Keep track of products already selected to avoid duplicates in the same order
+    const selectedProductIds = new Set();
+
+    for (let j = 0; j < numItems; j++) {
+      let product;
+      do {
+        product = products[Math.floor(Math.random() * products.length)];
+      } while (selectedProductIds.has(product.product_id));
+      
+      selectedProductIds.add(product.product_id);
+
+      const quantity = Math.floor(Math.random() * 2) + 1; // 1 or 2
+      const unitPrice = parseFloat(product.price);
+      totalAmount += unitPrice * quantity;
+
+      orderItemsData.push({
+        product_id: product.product_id,
+        quantity: quantity,
+        unit_price: unitPrice
+      });
+    }
+
+    const status = orderStatuses[Math.floor(Math.random() * orderStatuses.length)];
+    const paymentMethod = paymentMethods[Math.floor(Math.random() * paymentMethods.length)];
+    
+    let paymentStatus = 'completed';
+    if (status === 'pending') {
+      paymentStatus = Math.random() > 0.5 ? 'pending' : 'completed';
+    } else if (status === 'cancelled') {
+      paymentStatus = 'failed';
+    }
+
+    await prisma.order.create({
+      data: {
+        user_id: user.user_id,
+        order_date: orderDate,
+        total_amount: totalAmount,
+        status: status,
+        shipping_address: user.address || 'Colombo, Sri Lanka',
+        items: {
+          create: orderItemsData.map(item => ({
+            product_id: item.product_id,
+            quantity: item.quantity,
+            unit_price: item.unit_price
+          }))
+        },
+        payments: {
+          create: {
+            payment_date: orderDate,
+            payment_method: paymentMethod,
+            amount: totalAmount,
+            payment_status: paymentStatus
+          }
+        }
+      }
+    });
+  }
+
+  console.log('✅ 20 orders with payments seeded successfully.');
   console.log('🎉 Seed complete.');
 }
 

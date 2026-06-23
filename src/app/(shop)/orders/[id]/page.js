@@ -98,7 +98,7 @@ function OrderDetail() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs">
             <div>
               <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Shipping Address</p>
-              <p className="text-slate-700 dark:text-slate-300 font-semibold leading-relaxed">{order.shipping_address}</p>
+              <p className="text-slate-700 dark:text-slate-300 font-semibold leading-relaxed whitespace-pre-wrap">{order.shipping_address}</p>
             </div>
             <div>
               <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Payment Method</p>

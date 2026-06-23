@@ -21,6 +21,10 @@ export async function POST(request) {
       return NextResponse.json({ message: 'Invalid email or password' }, { status: 400 });
     }
 
+    if (user.is_blocked) {
+      return NextResponse.json({ message: 'Your account has been blocked. Please contact support.' }, { status: 403 });
+    }
+
     // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
