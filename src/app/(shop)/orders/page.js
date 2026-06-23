@@ -13,6 +13,7 @@ export default function OrdersPage() {
   useEffect(() => {
     if (!isLoggedIn()) { router.push('/login'); return; }
     fetchOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchOrders = async () => {
