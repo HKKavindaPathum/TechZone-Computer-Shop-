@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getToken, isAdmin, isLoggedIn } from '@/lib/auth';
 import { api } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -96,10 +97,11 @@ export default function AdminDashboard() {
       const token = getToken();
       const res = await api.delete(`/users/${userId}`, token);
       if (res.message?.includes('Cannot delete')) {
-        alert(res.message);
+        toast.error(res.message);
       } else {
         setUsers(users.filter(u => u.user_id !== userId));
         setUsersMessage('✅ User deleted successfully!');
+        toast.success('User deleted successfully!');
       }
     } catch (err) {
       console.error('Failed to delete user:', err);
@@ -142,13 +144,13 @@ export default function AdminDashboard() {
     if (!selectedProductForStockModal) return;
     const value = parseInt(stockAdjustValue);
     if (isNaN(value)) {
-      alert('Please enter a valid stock value');
+      toast.error('Please enter a valid stock value');
       return;
     }
     const currentStock = selectedProductForStockModal.stock_quantity;
     const newStock = stockAdjustMode === 'add' ? currentStock + value : value;
     if (newStock < 0) {
-      alert('Stock quantity cannot be negative');
+      toast.error('Stock quantity cannot be negative');
       return;
     }
     setStagedUpdates(prev => ({
@@ -180,15 +182,15 @@ export default function AdminDashboard() {
       const token = getToken();
       const res = await api.put('/products/bulk-stock', { updates }, token);
       if (res.message?.includes('successfully')) {
-        alert('✅ Stock updated successfully!');
+        toast.success('Stock updated successfully!');
         setStagedUpdates({});
         fetchData(); // Refetch products to get latest DB state
       } else {
-        alert('❌ Error updating stock: ' + (res.message || 'Unknown error'));
+        toast.error('Error updating stock: ' + (res.message || 'Unknown error'));
       }
     } catch (err) {
       console.error('Failed to submit stock update:', err);
-      alert('❌ Server error during stock update');
+      toast.error('Server error during stock update');
     }
   };
 
@@ -204,10 +206,11 @@ export default function AdminDashboard() {
       const data = await api.put(`/orders/${orderId}/status`, { status }, token);
       if (data.message) {
         setOrders(orders.map(o => o.order_id === orderId ? { ...o, status } : o));
+        toast.success('Order status updated successfully!');
       }
     } catch (err) {
       console.error('Failed to update order status:', err);
-      alert('Error updating order status');
+      toast.error('Error updating order status');
     }
   };
 
@@ -245,14 +248,15 @@ export default function AdminDashboard() {
       if (data.url) {
         setProductForm(prev => ({ ...prev, image_url: data.url }));
         setImageFile(null);
+        toast.success('Image uploaded successfully!');
         return data.url;
       } else {
-        alert('Upload failed: ' + (data.message || 'Unknown error'));
+        toast.error('Upload failed: ' + (data.message || 'Unknown error'));
         return productForm.image_url;
       }
     } catch (err) {
       console.error('Image upload error:', err);
-      alert('Image upload failed!');
+      toast.error('Image upload failed!');
       return productForm.image_url;
     } finally {
       setUploading(false);
@@ -321,13 +325,14 @@ export default function AdminDashboard() {
       const token = getToken();
       const res = await api.delete(`/products/${productId}`, token);
       if (res.message?.includes('Cannot delete')) {
-        alert(res.message);
+        toast.error(res.message);
       } else {
         setProducts(products.filter(p => p.product_id !== productId));
+        toast.success('Product deleted successfully!');
       }
     } catch (err) {
       console.error('Failed to delete product:', err);
-      alert('Error deleting product');
+      toast.error('Error deleting product');
     }
   };
 

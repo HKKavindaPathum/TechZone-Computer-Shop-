@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { isLoggedIn, getToken, getUser } from '@/lib/auth';
 import { api } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -53,15 +54,15 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async () => {
     if (!formData.recipient_name.trim()) {
-      alert('කරුණාකර ලබන්නාගේ නම (Recipient Name) ඇතුළත් කරන්න!');
+      toast.error('කරුණාකර ලබන්නාගේ නම (Recipient Name) ඇතුළත් කරන්න!');
       return;
     }
     if (!formData.contact_number.trim()) {
-      alert('කරුණාකර දුරකථන අංකය (Contact Number) ඇතුළත් කරන්න!');
+      toast.error('කරුණාකර දුරකථන අංකය (Contact Number) ඇතුළත් කරන්න!');
       return;
     }
     if (!formData.shipping_address.trim()) {
-      alert('කරුණාකර භාණ්ඩ එවීමට අවශ්‍ය ලිපිනය (Shipping Address) ඇතුළත් කරන්න!');
+      toast.error('කරුණාකර භාණ්ඩ එවීමට අවශ්‍ය ලිපිනය (Shipping Address) ඇතුළත් කරන්න!');
       return;
     }
     setPlacing(true);
@@ -82,11 +83,11 @@ export default function CheckoutPage() {
         window.dispatchEvent(new Event('cartUpdated'));
         router.push(`/orders/${data.orderId}?success=true`);
       } else {
-        alert(data.message || 'Order එක සකස් කිරීමට නොහැකි විය.');
+        toast.error(data.message || 'Order එක සකස් කිරීමට නොහැකි විය.');
       }
     } catch (err) {
       console.error('Failed to place order:', err);
-      alert('Something went wrong. Please try again.');
+      toast.error('Something went wrong. Please try again.');
     } finally {
       setPlacing(false);
     }

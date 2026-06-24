@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { isLoggedIn, getToken } from '@/lib/auth';
 import { api } from '@/lib/api';
 import CartItem from '@/components/CartItem';
+import toast from 'react-hot-toast';
 
 export default function CartPage() {
   const router = useRouter();
@@ -59,7 +60,7 @@ export default function CartPage() {
       router.push('/checkout');
     } catch (err) {
       console.error('Failed to sync cart:', err);
-      alert('Something went wrong during checkout. Please try again.');
+      toast.error('Something went wrong during checkout. Please try again.');
     } finally {
       setLoading(false);
     }

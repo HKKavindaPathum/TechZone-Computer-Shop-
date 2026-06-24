@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 
 export default function ProductCard({ product }) {
   const [added, setAdded] = useState(false);
@@ -28,6 +29,8 @@ export default function ProductCard({ product }) {
     
     // Notify Navbar to update cart count
     window.dispatchEvent(new Event('cartUpdated'));
+    
+    toast.success(`${product.product_name} added to cart!`);
     
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);

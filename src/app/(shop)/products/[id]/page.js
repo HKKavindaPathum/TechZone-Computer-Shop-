@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -54,6 +55,8 @@ export default function ProductDetailPage() {
     
     localStorage.setItem('cart', JSON.stringify(cart));
     window.dispatchEvent(new Event('cartUpdated'));
+    
+    toast.success(`${product.product_name} added to cart!`);
     
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
