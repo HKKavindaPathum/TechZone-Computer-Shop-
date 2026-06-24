@@ -2,7 +2,7 @@ import { Geist } from 'next/font/google';
 import './globals.css';
 import Navbar from '@/components/Navbar';
 import ToastProvider from '@/components/ToastProvider';
-import Footer from '@/components/Footer';
+import FooterWrapper from '@/components/FooterWrapper';
 
 const geist = Geist({ subsets: ['latin'] });
 
@@ -32,7 +32,7 @@ export default function RootLayout({ children }) {
       <body className={geist.className}>
         <Navbar />
         {children}
-        <Footer />
+        <FooterWrapper />
         <ToastProvider />
       </body>
     </html>
