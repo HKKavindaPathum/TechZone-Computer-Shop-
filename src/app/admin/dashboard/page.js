@@ -35,6 +35,10 @@ export default function AdminDashboard() {
   const [usersMessage, setUsersMessage] = useState('');
   const [usersLoading, setUsersLoading] = useState(false);
 
+  // Product Search States
+  const [productsSearch, setProductsSearch] = useState('');
+  const [productsCategoryFilter, setProductsCategoryFilter] = useState('');
+
   // Stock Update States
   const [stagedUpdates, setStagedUpdates] = useState({});
   const [bulkSearch, setBulkSearch] = useState('');
@@ -815,63 +819,108 @@ export default function AdminDashboard() {
 
         {/* TAB 3: PRODUCTS LIST */}
         {activeTab === 'products' && (
-          <div className="glass-panel rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-sm overflow-hidden animate-in fade-in duration-300">
-            {/* Scrollable table container */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[700px]">
-                <thead className="bg-slate-100/50 dark:bg-slate-950/40 border-b border-slate-200/60 dark:border-slate-800/50">
-                  <tr>
-                    {['Product', 'Category', 'Price', 'Stock', 'Actions'].map(h => (
-                      <th key={h} className="px-6 py-4.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{h}</th>
+          <div className="space-y-6 animate-in fade-in duration-300">
+            {/* Search and Category filter for products */}
+            <div className="glass-panel rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-sm p-6 text-left">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="sm:col-span-2">
+                  <label className={labelClass}>Search Products</label>
+                  <input
+                    type="text"
+                    value={productsSearch}
+                    onChange={(e) => setProductsSearch(e.target.value)}
+                    className={inputClass}
+                    placeholder="Search by product name or brand..."
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Category Filter</label>
+                  <select
+                    value={productsCategoryFilter}
+                    onChange={(e) => setProductsCategoryFilter(e.target.value)}
+                    className={`${inputClass} font-bold`}
+                  >
+                    <option value="">All Categories</option>
+                    {categories.map(cat => (
+                      <option key={cat.category_id} value={cat.category_id}>{cat.category_name}</option>
                     ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-150/40 dark:divide-slate-850/30 text-xs">
-                  {products.map(product => (
-                    <tr key={product.product_id} className="hover:bg-slate-100/30 dark:hover:bg-slate-850/15 font-medium transition-colors">
-                      <td className="px-6 py-4.5">
-                        <div className="flex items-center gap-3.5">
-                          <div className="w-10 h-10 bg-slate-100 dark:bg-slate-950 border border-slate-200/40 dark:border-slate-800/40 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
-                            {product.image_url ? (
-                              <img src={product.image_url} alt={product.product_name} className="w-full h-full object-cover"/>
-                            ) : <span className="text-base">🖥️</span>}
-                          </div>
-                          <div>
-                            <p className="font-bold text-slate-850 dark:text-slate-100 line-clamp-1">{product.product_name}</p>
-                            <p className="text-[10px] text-slate-450 mt-1 font-extrabold uppercase tracking-wide">{product.brand}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4.5 text-slate-500 dark:text-slate-400 font-semibold">{product.category_name}</td>
-                      <td className="px-6 py-4.5 font-black text-brand-primary dark:text-violet-400">Rs. {parseFloat(product.price).toLocaleString()}</td>
-                      <td className="px-6 py-4.5">
-                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-lg border ${
-                          product.stock_quantity > 0 
-                            ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
-                            : 'bg-rose-500/10 text-rose-500 border-rose-500/20'
-                        }`}>
-                          {product.stock_quantity} available
-                        </span>
-                      </td>
-                      <td className="px-6 py-4.5">
-                        <div className="flex gap-2">
-                          <button onClick={() => handleEditProduct(product)} className="bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary dark:text-indigo-400 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 px-3 py-1.5 rounded-xl text-[10px] font-bold transition duration-200 active:scale-95 transform">
-                            ✏️ Edit
-                          </button>
-                          <button onClick={() => handleDeleteProduct(product.product_id)} className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 px-3 py-1.5 rounded-xl text-[10px] font-bold transition duration-200 active:scale-95 transform">
-                            🗑️ Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {products.length === 0 && (
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="glass-panel rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-sm overflow-hidden">
+              {/* Scrollable table container */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[700px]">
+                  <thead className="bg-slate-100/50 dark:bg-slate-950/40 border-b border-slate-200/60 dark:border-slate-800/50">
                     <tr>
-                      <td colSpan="5" className="text-center py-12 text-slate-400 font-medium">No products found.</td>
+                      {['Product', 'Category', 'Price', 'Stock', 'Actions'].map(h => (
+                        <th key={h} className="px-6 py-4.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{h}</th>
+                      ))}
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-150/40 dark:divide-slate-850/30 text-xs">
+                    {(() => {
+                      const filtered = products.filter(product => {
+                        const matchesSearch = productsSearch.trim() === '' ||
+                          product.product_name.toLowerCase().includes(productsSearch.toLowerCase()) ||
+                          (product.brand && product.brand.toLowerCase().includes(productsSearch.toLowerCase()));
+                        const matchesCategory = productsCategoryFilter === '' ||
+                          product.category_id === parseInt(productsCategoryFilter);
+                        return matchesSearch && matchesCategory;
+                      });
+
+                      if (filtered.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan="5" className="text-center py-12 text-slate-400 font-medium">No products found matching the criteria.</td>
+                          </tr>
+                        );
+                      }
+
+                      return filtered.map(product => (
+                        <tr key={product.product_id} className="hover:bg-slate-100/30 dark:hover:bg-slate-850/15 font-medium transition-colors">
+                          <td className="px-6 py-4.5">
+                            <div className="flex items-center gap-3.5">
+                              <div className="w-10 h-10 bg-slate-100 dark:bg-slate-950 border border-slate-200/40 dark:border-slate-800/40 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                {product.image_url ? (
+                                  <img src={product.image_url} alt={product.product_name} className="w-full h-full object-cover"/>
+                                ) : <span className="text-base">🖥️</span>}
+                              </div>
+                              <div>
+                                <p className="font-bold text-slate-850 dark:text-slate-100 line-clamp-1">{product.product_name}</p>
+                                <p className="text-[10px] text-slate-455 mt-1 font-extrabold uppercase tracking-wide">{product.brand}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4.5 text-slate-500 dark:text-slate-400 font-semibold">{product.category_name}</td>
+                          <td className="px-6 py-4.5 font-black text-brand-primary dark:text-violet-400">Rs. {parseFloat(product.price).toLocaleString()}</td>
+                          <td className="px-6 py-4.5">
+                            <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-lg border ${
+                              product.stock_quantity > 0 
+                                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
+                                : 'bg-rose-500/10 text-rose-500 border-rose-500/20'
+                            }`}>
+                              {product.stock_quantity} available
+                            </span>
+                          </td>
+                          <td className="px-6 py-4.5">
+                            <div className="flex gap-2">
+                              <button onClick={() => handleEditProduct(product)} className="bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary dark:text-indigo-400 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 px-3 py-1.5 rounded-xl text-[10px] font-bold transition duration-200 active:scale-95 transform">
+                                ✏️ Edit
+                              </button>
+                              <button onClick={() => handleDeleteProduct(product.product_id)} className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 px-3 py-1.5 rounded-xl text-[10px] font-bold transition duration-200 active:scale-95 transform">
+                                🗑️ Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
